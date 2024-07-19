@@ -111,7 +111,7 @@ const selectedTodo = ref({
   status: 'PENDING',
 });
 const page = ref(0);
-const pageSize = 10;
+const pageSize = 7;
 const filterStatus = ref('');
 
 const fetchTodos = async () => {
@@ -216,7 +216,7 @@ const deleteTodo = async () => {
 };
 
 const nextPage = () => {
-  if (todos.value.totalPages && page.value + 1 < todos.value.totalPages) {
+  if (todos.value.page.totalPages && page.value + 1 < todos.value.page.totalPages) {
     page.value++;
     fetchTodos();
   }
