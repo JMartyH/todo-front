@@ -101,6 +101,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import Modal from './Modal.vue';
+import axios from 'axios';
 
 const todos = ref([]);
 const searchTerm = ref('');
@@ -125,19 +126,30 @@ const filterStatus = ref('');
 
 const fetchTodos = async () => {
   try {
-    const response = await fetch(`http://localhost:8080/api/v1/todos?page=${page.value}&size=${pageSize}&status=${filterStatus.value}`);
-    const data = await response.json();
-    todos.value = data;
+    const response = await axios.get(`http://localhost:8080/api/v1/todos`, {
+      params: {
+        page: page.value,
+        size: pageSize,
+        status: filterStatus.value 
+      }
+    });
+    todos.value = response.data; // Axios automatically parses JSON
   } catch (error) {
-    console.error('Error fetching todos:', error);
+    console.error('Error fetching todos:', error); 
   }
 };
 
 const searchTodos = async () => {
   try {
-    const response = await fetch(`http://localhost:8080/api/v1/todos/search?keyword=${searchTerm.value}&page=${page.value}&size=${pageSize}&status=${filterStatus.value}`);
-    const data = await response.json();
-    todos.value = data;
+    const response = await axios.get(`http://localhost:8080/api/v1/todos/search`, {
+      params: {
+        keyword: searchTerm.value,
+        page: page.value,
+        size: pageSize,
+        status: filterStatus.value
+      }
+    });
+    todos.value = response.data; 
   } catch (error) {
     console.error('Error fetching todos:', error);
   }
@@ -145,19 +157,14 @@ const searchTodos = async () => {
 
 const createTodo = async () => {
   try {
-    const response = await fetch('http://localhost:8080/api/v1/todos', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const response = await axios.post('http://localhost:8080/api/v1/todos', {
         title: newTodo.value.title,
         description: newTodo.value.description,
         dueDate: new Date(newTodo.value.dueDate).toISOString(),
-        status: newTodo.value.status,
-      }),
+        status: newTodo.value.status
+
     });
-    if (response.ok) {
+    if (response.status === 201) {
       fetchTodos();
       showCreateModal.value = false;
       newTodo.value = {
@@ -181,19 +188,13 @@ const editTodo = (todo) => {
 
 const updateTodo = async () => {
   try {
-    const response = await fetch(`http://localhost:8080/api/v1/todos/${selectedTodo.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: selectedTodo.value.title,
-        description: selectedTodo.value.description,
-        dueDate: new Date(selectedTodo.value.dueDate).toISOString(),
-        status: selectedTodo.value.status,
-      }),
+    const response = await axios.put(`http://localhost:8080/api/v1/todos/${selectedTodo.value.id}`, {        
+      title: selectedTodo.value.title,
+      description: selectedTodo.value.description,
+      dueDate: new Date(selectedTodo.value.dueDate).toISOString(),
+      status: selectedTodo.value.status,
     });
-    if (response.ok) {
+    if (response.status === 200) {
       fetchTodos();
       showEditModal.value = false;
       selectedTodo.value = {
@@ -213,10 +214,9 @@ const updateTodo = async () => {
 
 const deleteTodo = async () => {
   try {
-    const response = await fetch(`http://localhost:8080/api/v1/todos/${selectedTodo.value.id}`, {
-      method: 'DELETE',
+    const response = await axios.delete(`http://localhost:8080/api/v1/todos/${selectedTodo.value.id}`, {
     });
-    if (response.ok) {
+    if (response.status === 204) {
       fetchTodos();
       showEditModal.value = false;
       selectedTodo.value = {
