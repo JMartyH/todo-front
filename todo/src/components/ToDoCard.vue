@@ -95,13 +95,63 @@
         </div>
       </form>
     </Modal>
+    <div>
+        HELLO
+    <ul v-if="reminders.length > 0">
+      <li v-for="reminder in reminders" :key="reminder">
+        {{ reminder }}
+      </li>
+    </ul>
   </div>
+  </div>
+ 
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import Modal from './Modal.vue';
 import axios from 'axios';
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
+const reminders = ref([]);
+let stompClient = null;
+
+onMounted(() => {
+  fetchTodos();
+  connectToWebSocket();
+});
+
+onUnmounted(() => {
+  disconnectFromWebSocket();
+});
+
+const connectToWebSocket = () => {
+  // Create the SockJS instance
+  const socket = new SockJS('http://localhost:8080/ws'); // Your WebSocket endpoint
+
+  stompClient = new Client({
+    webSocketFactory: () => socket, // Use SockJS for the connection
+    onConnect: () => {
+      console.log('Connected to WebSocket (STOMP)');
+      stompClient.subscribe('/topic/reminders', (reminder) => {
+        reminders.value.push(reminder.body); 
+      });
+    },
+    onError: (error) => {
+      console.error('WebSocket connection error:', error);
+      // Consider reconnect logic here
+    }
+  });
+
+  stompClient.activate(); 
+};
+
+const disconnectFromWebSocket = () => {
+  if (stompClient !== null) {
+    stompClient.deactivate(); 
+  }
+  console.log('Disconnected from WebSocket (STOMP)');
+};
 
 const todos = ref([]);
 const searchTerm = ref('');
@@ -198,11 +248,11 @@ const updateTodo = async () => {
       fetchTodos();
       showEditModal.value = false;
       selectedTodo.value = {
-        id: null,
-        title: '',
-        description: '',
-        dueDate: '',
-        status: 'PENDING',
+        id: selectedTodo.value.id,
+        title: selectedTodo.value.title,
+        description: selectedTodo.value.description,
+        dueDate: selectedTodo.value.dueDate,
+        status: selectedTodo.value.status,
       };
     } else {
       console.error('Error updating todo:', response.statusText);
@@ -248,7 +298,7 @@ const prevPage = () => {
   }
 };
 
-onMounted(() => {
-  fetchTodos();
-});
+// onMounted(() => {
+//   fetchTodos();
+// });
 </script>
